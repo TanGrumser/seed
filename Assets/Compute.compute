@@ -1,14 +1,45 @@
-#pragma kernel CSMain
+#pragma kernel Update
 
+struct Root {
+	float2 position;
+	float angle;
+	int speciesIndex;
+};
+
+RWStructuredBuffer<Root> roots;
+
+RWTexture2D<float4> DataTexture;
+float width;
+float height;
+
+[numthreads(16,1,1)]
+void Update (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= 1) {
+		return;
+	}
+
+    Root root = roots[id.x];
+
+    DataTexture[int2(root.position.x, root.position.y)] = float4(1.0, 1.0, 1.0, 0); 
+
+    float2 direction = float2(cos(root.angle), sin(root.angle));
+	float2 newPos = root.position + float2(1.0, 0.0);
+
+    roots[id.x].position = newPos;
+}
+
+
+// ---------------------------------------
+
+
+#pragma kernel Display
+
+RWTexture2D<float4> Source;
 RWTexture2D<float4> Result;
 
-
 [numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void Display (uint3 id : SV_DispatchThreadID)
 {
-    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
-    
-    if (id.x > 100 && id.y > 100) {
-        Result[uint2(id.x, id.y)] = float4(1,0,0,0);
-    }
+    Result[id.xy] = Source[id.xy];
 }
