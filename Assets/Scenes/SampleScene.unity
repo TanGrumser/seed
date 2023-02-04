@@ -255,9 +255,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TextureShader: {fileID: 7200000, guid: 13b1012e42b4840b6a50b93d1b8e0447, type: 3}
+  DisplayShader: {fileID: 7200000, guid: 57151151aac404e04a88986db536ecfa, type: 3}
   display: {fileID: 849527890}
-  width: 1280
-  height: 720
 --- !u!1 &826017045
 GameObject:
   m_ObjectHideFlags: 0
