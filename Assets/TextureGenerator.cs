@@ -1,11 +1,13 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 public struct RootAgent
 {
     public Vector2 position;
     public float angle;
     public int rootIndex;
+    public int age;
+    public int alive;
 }
 
 public class TextureGenerator : MonoBehaviour 
@@ -17,6 +19,8 @@ public class TextureGenerator : MonoBehaviour
     private RenderTexture displayTexture;
 
     ComputeBuffer rootBuffer;
+
+    private int agentCount;
 
     private void Start() {
         // Initialize all textures
@@ -33,10 +37,14 @@ public class TextureGenerator : MonoBehaviour
         int updateKernel = computeShader.FindKernel("Update");
         computeShader.SetTexture(updateKernel, "DataTexture", dataTexture);
         RootAgent root = new RootAgent();
-        root.position = new Vector2(1, 1);
-        root.angle = 0f;
+        root.position = new Vector2(200, 200);
+        root.angle = 90f;
+        root.age = 0;
+        root.alive = 1;
         RootAgent[] roots = new RootAgent[1];
         roots[0] = root;
+
+        agentCount = 1;
 
         CreateAndSetBuffer<RootAgent>(ref rootBuffer, roots, computeShader, "roots", updateKernel);
         computeShader.SetBuffer(0, updateKernel, rootBuffer);
@@ -45,6 +53,9 @@ public class TextureGenerator : MonoBehaviour
 
         computeShader.SetTexture(displayKernel, "Source", dataTexture);
         computeShader.SetTexture(displayKernel, "Result", displayTexture);
+
+        computeShader.SetInt("width", Screen.width);
+		computeShader.SetInt("height", Screen.height);
 
     }
 
@@ -67,8 +78,53 @@ public class TextureGenerator : MonoBehaviour
     }
 
     private void UpdateTexture() {        
-        int updateKernel = computeShader.FindKernel("Update");        
-        computeShader.Dispatch(updateKernel, 1, 1, 1);
+        int updateKernel = computeShader.FindKernel("Update"); 
+
+        bool dirtyAgents = false;
+        List<RootAgent> newAgents = new List<RootAgent>();
+        RootAgent[] agents = new RootAgent[agentCount];
+        rootBuffer.GetData(agents);
+        if (agents.Length > 1000) {
+            Debug.Log("Too many agents!");
+            Debug.Break();
+        }
+        
+        for (int i = 0; i < agents.Length; i++) {
+            RootAgent currentRoot = agents[i];
+            if (currentRoot.alive == 0) {
+                dirtyAgents = true;
+                if (currentRoot.age > 5) {
+                    return;
+                }
+
+                RootAgent left = new RootAgent();
+                left.position = currentRoot.position;
+                left.angle = currentRoot.angle + 15;
+                left.age = currentRoot.age++;
+                left.alive = 1; 
+
+                RootAgent right = new RootAgent();
+                right.position = currentRoot.position;
+                right.angle = currentRoot.angle - 15;
+                right.age = currentRoot.age++;
+                right.alive = 1; 
+
+                newAgents.Add(left);
+                newAgents.Add(right);
+            } else {
+                newAgents.Add(currentRoot);
+            }
+        }
+
+        if (dirtyAgents) {
+            agentCount = newAgents.Count;
+            RootAgent[] roots = newAgents.ToArray();
+            CreateAndSetBuffer<RootAgent>(ref rootBuffer, roots, computeShader, "roots", updateKernel);
+            computeShader.SetBuffer(0, updateKernel, rootBuffer);
+        }
+
+        computeShader.SetFloat("time", Time.time);
+        computeShader.Dispatch(updateKernel, agentCount, 1, 1);
     }
 
     public static void CreateAndSetBuffer<T>(ref ComputeBuffer buffer, T[] data, ComputeShader cs, string nameID, int kernelIndex = 0)

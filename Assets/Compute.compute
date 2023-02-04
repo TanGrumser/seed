@@ -4,27 +4,59 @@ struct Root {
 	float2 position;
 	float angle;
 	int speciesIndex;
+    int age;
+    int alive;
 };
+
 
 RWStructuredBuffer<Root> roots;
 
 RWTexture2D<float4> DataTexture;
 float width;
 float height;
+float time;
+
+uint hash(uint state)
+{
+    state ^= 2747636419u;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    return state;
+}
+
+float scaleToRange01(uint state)
+{
+    return state / 4294967295.0;
+}
 
 [numthreads(16,1,1)]
 void Update (uint3 id : SV_DispatchThreadID)
 {
-    if (id.x >= 1) {
-		return;
-	}
 
     Root root = roots[id.x];
+
+    if (root.alive == 0) {
+        return;
+    }
+
+    uint random = hash(root.position.y * width + root.position.x + hash(id.x + time * 100000));
+	float dieRandom = scaleToRange01(random);
+
+
+    if (dieRandom < 0.02) {
+        roots[id.x].angle = root.angle + 45;
+        root = roots[id.x];
+        roots[id.x].alive = 0;
+        //return;
+    }
 
     DataTexture[int2(root.position.x, root.position.y)] = float4(1.0, 1.0, 1.0, 0); 
 
     float2 direction = float2(cos(root.angle), sin(root.angle));
-	float2 newPos = root.position + float2(1.0, 0.0);
+	float2 newPos = root.position + direction;
 
     roots[id.x].position = newPos;
 }
