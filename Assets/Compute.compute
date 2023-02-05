@@ -143,19 +143,27 @@ RWTexture2D<float4> Result;
 [numthreads(8,8,1)]
 void Display (uint3 id : SV_DispatchThreadID)
 {   
-    if (Source[id.xy].x > 0) {
-        Result[id.xy] = float4(
-            0.69 * Source[id.xy].x * 0.8, 
+    float threshold = 0.6;
+    if (Source[id.xy].x > 0) {//threshold || Source[id.xy].y > threshold || Source[id.xy].z > threshold) {
+        float4 col = float4(
+            0.69 * Source[id.xy].x * 0.8,
             0.49 * Source[id.xy].y * 0.8, 
             0.27 * Source[id.xy].z * 0.2, 
             Source[id.xy].a + 0.9
         );
+        Result[id.xy] = lerp(col, Result[id.xy], float4(0.9,0.9,0.9,0.9));
     }
-    
-    /*
-    if (Source[id.xy].z > 0.05) {
-        float val = 0.5 + col.z / 2.0;
-        Result[id.xy] = 1;
-    }
-    */
 }
+
+// ----------------------------------------
+
+#pragma kernel InitDisplay
+
+RWTexture2D<float4> texDisplay;
+
+[numthreads(8,8,1)]
+void InitDisplay (uint3 id : SV_DispatchThreadID)
+{   
+    texDisplay[id.xy] = float4(0.3, 0.4, 0.91, 1.0);
+}
+

@@ -81,11 +81,23 @@ public class TextureGenerator : MonoBehaviour
 
         computeShader.SetTexture(displayKernel, "Source", dataTexture);
         computeShader.SetTexture(displayKernel, "Result", displayTexture);
+
+        InitDisplayTexture();
 /*
         computeShader.SetInt("width", Screen.width);
 		computeShader.SetInt("height", Screen.height);
 		computeShader.SetInt("numRoots", (int)agentCount);*/
 
+    }
+
+    private void InitDisplayTexture() {
+        int initKernel = computeShader.FindKernel("InitDisplay");
+        computeShader.SetTexture(initKernel, "texDisplay", displayTexture);
+
+        int workgroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
+        int workgroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
+
+        computeShader.Dispatch(initKernel, workgroupsX, workgroupsY, 1);
     }
 
     private void FixedUpdate() {
@@ -254,7 +266,8 @@ public class TextureGenerator : MonoBehaviour
     }
 
     private void OnDestroy() {
-        rootBuffer.Release();
+        rootBuffer?.Release();
+        countBuffer?.Release();
     }
 
 } 
