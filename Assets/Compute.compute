@@ -80,7 +80,8 @@ void Update (uint3 id : SV_DispatchThreadID)
         return; 
     }
 
-    TrialTexture[int2(root.position)] = float4(direction.x, direction.y, root.width , 0.0); 
+    //TrialTexture[int2(root.position)] = float4(direction.x, direction.y, root.width , 0.0); 
+    TrialTexture[int2(root.position)] = float4(1, 1, root.width , 0.0); 
 
     roots[id.x].position = newPos;
     roots[id.x].angle = getNewAngle(root.position, id, root.angle);
@@ -119,13 +120,13 @@ void Grow (uint3 id : SV_DispatchThreadID)
     if (col.z > 0.9) {
         coefficient = 0.9999;
     } else if (col.z > 0.7) {
-        coefficient = 0.98;
+        coefficient = 0.99;
     } else if (col.z > 0.4) {
-        coefficient = 0.95;
+        coefficient = 0.98;
     } else if (col.z > 0.1) {
-        coefficient = 0.92;
+        coefficient = 0.96;
     } else {
-        coefficient = 0.9;
+        coefficient = 0.92;
     }
     
 
@@ -142,8 +143,14 @@ RWTexture2D<float4> Result;
 [numthreads(8,8,1)]
 void Display (uint3 id : SV_DispatchThreadID)
 {   
-    Result[id.xy] = Source[id.xy];
-    float4 col = Source[id.xy];
+    if (Source[id.xy].x > 0) {
+        Result[id.xy] = float4(
+            0.69 * Source[id.xy].x * 0.8, 
+            0.49 * Source[id.xy].y * 0.8, 
+            0.27 * Source[id.xy].z * 0.2, 
+            Source[id.xy].a + 0.9
+        );
+    }
     
     /*
     if (Source[id.xy].z > 0.05) {
