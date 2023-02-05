@@ -90,7 +90,7 @@ void Grow (uint3 id : SV_DispatchThreadID)
 		}
 	}
 
-	Texture[id.xy] = sum / 8;
+	Texture[id.xy] = sum / 8.95;
 }
 
 // ----------------------------------------
