@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public struct RootAgent
 {
@@ -104,11 +105,21 @@ public class TextureGenerator : MonoBehaviour
 
         bool dirtyAgents = false;
 
+        System.Random rnd = new System.Random();
         for (int i = 0; i < roots.Count; i++) {
             RootAgent root = roots[i];
+            
+            // if (root.age > 5) {
+            //     root.alive = 0;
+            //     roots[i] = root;
+            //     dirtyAgents = true;
+            // }
+            
             float aliveTime = Time.realtimeSinceStartup - root.plantTime;
-            if (aliveTime >= 2) {
-                if (aliveTime >= 4 || Random.Range(0.0f, 1.0f) < 0.5) {
+
+            if (aliveTime >= 1.2) {
+                float rndValue = (float)rnd.NextDouble();
+                if (aliveTime >= 2.8 || rndValue < 0.005) {
                     root.alive = 0;
                     roots[i] = root;
                     dirtyAgents = true;
