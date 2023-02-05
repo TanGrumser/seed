@@ -24,16 +24,16 @@ public class TextureGenerator : MonoBehaviour
 
     ComputeBuffer rootBuffer;
     List<RootAgent> roots = new List<RootAgent>();
+    int agentStide = System.Runtime.InteropServices.Marshal.SizeOf(typeof(RootAgent));
 
     private uint agentCount;
 
     private void Start() {
-        Debug.Log(sizeof(float) * 4 + sizeof(int) * 3);
         // Initialize all textures
         dataTexture = new RenderTexture(Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         dataTexture.enableRandomWrite = true;
         dataTexture.Create();
-
+        Debug.Log(agentStide);
         trialTexture = new RenderTexture(Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         trialTexture.enableRandomWrite = true;
         trialTexture.Create();
@@ -63,7 +63,7 @@ public class TextureGenerator : MonoBehaviour
         agentCount = 1;
 
         //CreateAndSetBuffer<RootAgent>(ref rootBuffer, roots, computeShader, "roots", updateKernel);
-        rootBuffer = new ComputeBuffer((int)agentCount, sizeof(float) * 5 + sizeof(int) * 3);
+        rootBuffer = new ComputeBuffer((int)agentCount, agentStide);
         rootBuffer.SetData(roots.ToArray());
         computeShader.SetBuffer(updateKernel, "roots", rootBuffer);
 
@@ -74,6 +74,7 @@ public class TextureGenerator : MonoBehaviour
 
         computeShader.SetInt("width", Screen.width);
 		computeShader.SetInt("height", Screen.height);
+		computeShader.SetInt("numRoots", (int)agentCount);
     }
 
     private void FixedUpdate() {
@@ -111,7 +112,7 @@ public class TextureGenerator : MonoBehaviour
             
             float aliveTime = Time.realtimeSinceStartup - root.plantTime;
 
-            if (aliveTime >= 1.2) {
+            if (aliveTime >= 10.2) {
                 float rndValue = (float)rnd.NextDouble();
                 if (aliveTime >= 2.2 || rndValue < 0.5) {
                     root.alive = 0;
@@ -165,7 +166,7 @@ public class TextureGenerator : MonoBehaviour
             if (agentCount != 0) {
                 roots = newAgents;
                 rootBuffer.Release();
-                rootBuffer = new ComputeBuffer((int)agentCount, sizeof(float) * 5 + sizeof(int) * 3);
+                rootBuffer = new ComputeBuffer((int)agentCount, agentStide);
                 rootBuffer.SetData(roots.ToArray());
                 computeShader.SetBuffer(updateKernel, "roots", rootBuffer);
             }
@@ -215,6 +216,16 @@ public class TextureGenerator : MonoBehaviour
                 buffers[i].Release();
             }
         }
+    }
+
+    private static void PrintRoots (RootAgent[] roots) {
+        string res = "";
+        foreach (RootAgent root in roots) {
+            res += "pos: " + root.position.ToString()
+            + ", " + root.age;
+        }
+
+        Debug.Log(res);
     }
 
     private void OnDestroy() {
