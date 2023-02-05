@@ -7,6 +7,7 @@ struct Root {
     int age;
     int alive;
 	float speed;
+    float plantTime;
 };
 
 
@@ -46,14 +47,6 @@ void Update (uint3 id : SV_DispatchThreadID)
 
     if (root.alive == 0) {
         return;
-    }
-
-    uint random = hash(root.position.y * width + root.position.x + hash(id.x + time * 100000));
-	float dieRandom = scaleToRange01(random);
-
-
-    if (dieRandom < 0.02) {
-        roots[id.x].alive = 0;
     }
 
     int sampleX = min(width-1, max(0, root.position.x));

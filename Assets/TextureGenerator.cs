@@ -9,6 +9,7 @@ public struct RootAgent
     public int age;
     public int alive;
     public float speed;
+    public float plantTime;
 }
 
 public class TextureGenerator : MonoBehaviour 
@@ -20,7 +21,7 @@ public class TextureGenerator : MonoBehaviour
     private RenderTexture displayTexture;
 
     ComputeBuffer rootBuffer;
-    RootAgent[] roots = new RootAgent[1];
+    List<RootAgent> roots = new List<RootAgent>();
 
     private uint agentCount;
 
@@ -49,15 +50,15 @@ public class TextureGenerator : MonoBehaviour
         root.angle = Mathf.PI * 1.5f;
         root.age = 0;
         root.alive = 1;
-        RootAgent[] roots = new RootAgent[1];
         root.speed = 1f;
-        roots[0] = root;
+        root.plantTime = Time.realtimeSinceStartup;
+        roots.Add(root);
 
         agentCount = 1;
 
         //CreateAndSetBuffer<RootAgent>(ref rootBuffer, roots, computeShader, "roots", updateKernel);
-        rootBuffer = new ComputeBuffer((int)agentCount, sizeof(float) * 4 + sizeof(int) * 3);
-        rootBuffer.SetData(roots);
+        rootBuffer = new ComputeBuffer((int)agentCount, sizeof(float) * 5 + sizeof(int) * 3);
+        rootBuffer.SetData(roots.ToArray());
         computeShader.SetBuffer(updateKernel, "roots", rootBuffer);
 
         int displayKernel = computeShader.FindKernel("Display");
@@ -97,58 +98,72 @@ public class TextureGenerator : MonoBehaviour
         int updateKernel = computeShader.FindKernel("Update"); 
 
         bool dirtyAgents = false;
-        List<RootAgent> newAgents = new List<RootAgent>();
-        RootAgent[] agents = new RootAgent[agentCount];
 
-        rootBuffer.GetData(agents);
-        Debug.Log(agentCount);
-
-        for (int i = 0; i < agents.Length; i++) {
-            RootAgent currentRoot = agents[i];
-
-            if (currentRoot.alive == 0) {
-                dirtyAgents = true;
-                if (currentRoot.age > 8) {
-                    break;
+        for (int i = 0; i < roots.Count; i++) {
+            RootAgent root = roots[i];
+            float aliveTime = Time.realtimeSinceStartup - root.plantTime;
+            if (aliveTime >= 2) {
+                if (aliveTime >= 4 || Random.Range(0.0f, 1.0f) < 0.5) {
+                    root.alive = 0;
+                    roots[i] = root;
+                    dirtyAgents = true;
                 }
+            }
+        };
 
-                RootAgent left = new RootAgent();
-                left.position = currentRoot.position;
-                left.angle = currentRoot.angle + 0.7f;
-                left.age = ++currentRoot.age;
-                left.speed = 1;
-                left.alive = 1;
+        if (dirtyAgents) {
+            List<RootAgent> newAgents = new List<RootAgent>();
+            RootAgent[] agents = new RootAgent[agentCount];
 
-                RootAgent right = new RootAgent();
-                right.position = currentRoot.position;
-                right.angle = currentRoot.angle - 0.7f;
-                right.age = ++currentRoot.age;
-                right.speed = 1;
-                right.alive = 1; 
+            rootBuffer.GetData(agents);
 
-                newAgents.Add(left);
-                newAgents.Add(right);
-            } else {
-                newAgents.Add(currentRoot);
+            for (int i = 0; i < roots.Count; i++) {
+                RootAgent currentRoot = agents[i];
+                if (roots[i].alive == 0) {                    
+                    RootAgent left = new RootAgent();
+                    left.position = currentRoot.position;
+                    left.angle = currentRoot.angle + 0.7f;
+                    left.age = ++currentRoot.age;
+                    left.speed = 1;
+                    left.alive = 1;
+                    left.plantTime = Time.realtimeSinceStartup;
+
+                    newAgents.Add(left);
+
+
+                    RootAgent right = new RootAgent();
+                    right.position = currentRoot.position;
+                    right.angle = currentRoot.angle - 0.7f;
+                    right.age = ++currentRoot.age;
+                    right.speed = 1;
+                    right.alive = 1; 
+                    right.plantTime = Time.realtimeSinceStartup;
+
+                    newAgents.Add(right);
+
+                } else {
+                    newAgents.Add(currentRoot);
+                }
+            }
+
+            agentCount = (uint)newAgents.Count;
+
+            if (agentCount != 0) {
+                roots = newAgents;
+                rootBuffer.Release();
+                rootBuffer = new ComputeBuffer((int)agentCount, sizeof(float) * 5 + sizeof(int) * 3);
+                rootBuffer.SetData(roots.ToArray());
+                computeShader.SetBuffer(updateKernel, "roots", rootBuffer);
             }
         }
 
-        agentCount = (uint)newAgents.Count;
-
-        if (dirtyAgents && agentCount != 0) {
-            RootAgent[] roots = newAgents.ToArray();
-            rootBuffer.Release();
-            rootBuffer = new ComputeBuffer((int)agentCount, sizeof(float) * 4 + sizeof(int) * 3);
-            rootBuffer.SetData(roots);
-            computeShader.SetBuffer(updateKernel, "roots", rootBuffer);
-        }
 
         computeShader.SetFloat("time", System.DateTime.Now.ToUniversalTime().Millisecond);
         computeShader.SetFloat("deltaTime", Time.deltaTime);
         computeShader.SetFloat("numRoots", agentCount);
         
         if (agentCount > 0) {
-            Debug.Log("Dispatching compute shader");
+            // Debug.Log("Dispatching compute shader");
             computeShader.Dispatch(updateKernel, (int)agentCount, 1, 1);
         }
 
