@@ -10,6 +10,8 @@ struct Root {
     float plantTime;
 };
 
+RWStructuredBuffer<int> rootCount;
+
 
 RWStructuredBuffer<Root> roots;
 
@@ -45,7 +47,10 @@ float getRandomAngleChange(float2 pos, uint3 id) {
 [numthreads(16,1,1)]
 void Update (uint3 id : SV_DispatchThreadID)
 {
-    if (id.x >= numRoots) {
+    
+    int agentCounter = rootCount[0];
+    
+    if (id.x >= agentCounter) {
         return;
     }
 

@@ -23,6 +23,7 @@ public class TextureGenerator : MonoBehaviour
     private RenderTexture displayTexture;
 
     ComputeBuffer rootBuffer;
+    ComputeBuffer countBuffer;
     List<RootAgent> roots = new List<RootAgent>();
     int agentStide = System.Runtime.InteropServices.Marshal.SizeOf(typeof(RootAgent));
 
@@ -48,8 +49,8 @@ public class TextureGenerator : MonoBehaviour
         int growKernel = computeShader.FindKernel("Grow");
         computeShader.SetTexture(updateKernel, "TrialTexture", dataTexture);
         computeShader.SetTexture(growKernel, "DataTexture", dataTexture);
-        computeShader.SetFloat("width", Screen.width);
-        computeShader.SetFloat("height", Screen.height);
+        // computeShader.SetFloat("width", Screen.width);
+        // computeShader.SetFloat("height", Screen.height);
 
         RootAgent root = new RootAgent();
         root.position = new Vector2(Screen.width / 2f, Screen.height);
@@ -67,6 +68,11 @@ public class TextureGenerator : MonoBehaviour
         rootBuffer.SetData(roots.ToArray());
         computeShader.SetBuffer(updateKernel, "roots", rootBuffer);
 
+        countBuffer = new ComputeBuffer(1, sizeof(int));
+        int[] agentCountArray = {(int)agentCount};
+        countBuffer.SetData(agentCountArray);
+        computeShader.SetBuffer(updateKernel, "rootCount", countBuffer);
+
         int displayKernel = computeShader.FindKernel("Display");
 
         computeShader.SetTexture(displayKernel, "Source", dataTexture);
@@ -75,6 +81,7 @@ public class TextureGenerator : MonoBehaviour
         computeShader.SetInt("width", Screen.width);
 		computeShader.SetInt("height", Screen.height);
 		computeShader.SetInt("numRoots", (int)agentCount);
+
     }
 
     private void FixedUpdate() {
@@ -106,13 +113,15 @@ public class TextureGenerator : MonoBehaviour
 
         bool dirtyAgents = false;
 
+        
+
         System.Random rnd = new System.Random();
         for (int i = 0; i < roots.Count; i++) {
             RootAgent root = roots[i];
             
             float aliveTime = Time.realtimeSinceStartup - root.plantTime;
 
-            if (aliveTime >= 10.2) {
+            if (aliveTime >= 1.2) {
                 float rndValue = (float)rnd.NextDouble();
                 if (aliveTime >= 2.2 || rndValue < 0.5) {
                     root.alive = 0;
@@ -176,6 +185,10 @@ public class TextureGenerator : MonoBehaviour
         computeShader.SetFloat("time", System.DateTime.Now.ToUniversalTime().Millisecond);
         computeShader.SetFloat("deltaTime", Time.deltaTime);
         computeShader.SetFloat("numRoots", agentCount);
+
+        int[] agentCountArray = {(int)agentCount};
+        countBuffer.SetData(agentCountArray);
+        computeShader.SetBuffer(updateKernel, "rootCount", countBuffer);
         
         if (agentCount > 0) {
             // Debug.Log("Dispatching compute shader");
