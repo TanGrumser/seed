@@ -6,6 +6,7 @@ struct Root {
 	int speciesIndex;
     int age;
     int alive;
+    float width;
 	float speed;
     float plantTime;
 };
@@ -38,10 +39,19 @@ float scaleToRange01(uint state)
     return state / 4294967295.0;
 }
 
-float getRandomAngleChange(float2 pos, uint3 id) {
+float getNewAngle(float2 pos, uint3 id, float angle) {
     uint random = hash(pos.y * width + pos.x + hash(id.x + time));
     float randomSteerStrength = scaleToRange01(random);
-    return (randomSteerStrength - 0.5) / 4.0;
+
+    if (angle > 0) {
+        return angle - randomSteerStrength / 4.0;
+    } 
+
+    if (angle < -3.1415) { 
+        return angle + randomSteerStrength / 4.0;
+    }
+
+    return angle - (randomSteerStrength - 0.5) / 4.0;
 }
 
 [numthreads(16,1,1)]
@@ -70,10 +80,10 @@ void Update (uint3 id : SV_DispatchThreadID)
         return; 
     }
 
-    TrialTexture[int2(root.position)] = float4(direction.x, direction.y, 1.0, 0.0); 
+    TrialTexture[int2(root.position)] = float4(direction.x, direction.y, root.width , 0.0); 
 
     roots[id.x].position = newPos;
-    roots[id.x].angle += getRandomAngleChange(root.position, id);
+    roots[id.x].angle = getNewAngle(root.position, id, root.angle);
     //roots[id.x].speed = max(0, root.speed - 0.01);
 }
 
@@ -83,7 +93,8 @@ void Update (uint3 id : SV_DispatchThreadID)
 
 #pragma kernel Grow
 
-RWTexture2D<float4> DataTexture;
+RWTexture2D<float4> TrailInputTexture;
+RWTexture2D<float4> DataOutputTexture;
 
 [numthreads(8,8,1)]
 void Grow (uint3 id : SV_DispatchThreadID)
@@ -95,11 +106,30 @@ void Grow (uint3 id : SV_DispatchThreadID)
 		for (int offsetY = -1; offsetY <= 1; offsetY ++) {
 			int sampleX = min(1280 - 1, max(0, id.x + offsetX));
 			int sampleY = min(720 - 1, max(0, id.y + offsetY));
-			sum += DataTexture[int2(sampleX, sampleY)];
+			sum += max(
+                TrailInputTexture[int2(sampleX, sampleY)],
+                DataOutputTexture[int2(sampleX, sampleY)]
+            );
 		}
 	}
+    float4 col = sum / 9;
+    
+    float coefficient;
 
-	DataTexture[id.xy] = sum / 8.99;
+    if (col.z > 0.9) {
+        coefficient = 0.9999;
+    } else if (col.z > 0.7) {
+        coefficient = 0.98;
+    } else if (col.z > 0.4) {
+        coefficient = 0.95;
+    } else if (col.z > 0.1) {
+        coefficient = 0.92;
+    } else {
+        coefficient = 0.9;
+    }
+    
+
+    DataOutputTexture[id.xy] = col * coefficient;
 }
 
 // ----------------------------------------
@@ -113,4 +143,12 @@ RWTexture2D<float4> Result;
 void Display (uint3 id : SV_DispatchThreadID)
 {   
     Result[id.xy] = Source[id.xy];
+    float4 col = Source[id.xy];
+    
+    /*
+    if (Source[id.xy].z > 0.05) {
+        float val = 0.5 + col.z / 2.0;
+        Result[id.xy] = 1;
+    }
+    */
 }

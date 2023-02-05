@@ -9,8 +9,9 @@ public struct RootAgent
     public int rootIndex;
     public int age;
     public int alive;
+    public float width;
     public float speed;
-    public float plantTime;
+    public float deadTime;
 }
 
 public class TextureGenerator : MonoBehaviour 
@@ -47,19 +48,17 @@ public class TextureGenerator : MonoBehaviour
 
         int updateKernel = computeShader.FindKernel("Update");
         int growKernel = computeShader.FindKernel("Grow");
-        computeShader.SetTexture(updateKernel, "TrialTexture", dataTexture);
-        computeShader.SetTexture(growKernel, "DataTexture", dataTexture);
-        // computeShader.SetFloat("width", Screen.width);
-        // computeShader.SetFloat("height", Screen.height);
-
-        RootAgent root = new RootAgent();
-        root.position = new Vector2(Screen.width / 2f, Screen.height);
-        root.angle = Mathf.PI * 1.5f;
-        root.age = 0;
-        root.alive = 1;
-        root.speed = 1f;
-        root.plantTime = Time.realtimeSinceStartup;
-        roots.Add(root);
+        computeShader.SetTexture(updateKernel, "TrialTexture", trialTexture);
+        computeShader.SetTexture(growKernel, "TrailInputTexture", trialTexture);
+        computeShader.SetTexture(growKernel, "DataOutputTexture", dataTexture);
+        
+        roots.Add(
+            CreateAgent(
+                new Vector2(Screen.width / 2f, Screen.height),
+                -Mathf.PI * 0.5f,
+                0
+            )
+        );
 
         agentCount = 1;
 
@@ -119,15 +118,10 @@ public class TextureGenerator : MonoBehaviour
         for (int i = 0; i < roots.Count; i++) {
             RootAgent root = roots[i];
             
-            float aliveTime = Time.realtimeSinceStartup - root.plantTime;
-
-            if (aliveTime >= 1.2) {
-                float rndValue = (float)rnd.NextDouble();
-                if (aliveTime >= 2.2 || rndValue < 0.5) {
-                    root.alive = 0;
-                    roots[i] = root;
-                    dirtyAgents = true;
-                }
+            if (root.deadTime <= Time.time) {
+                root.alive = 0;
+                roots[i] = root;
+                dirtyAgents = true;
             }
         };
 
@@ -144,27 +138,21 @@ public class TextureGenerator : MonoBehaviour
                         continue;
                     }
 
-                    RootAgent left = new RootAgent();
-                    left.position = currentRoot.position;
-                    left.angle = currentRoot.angle + 0.7f;
-                    left.age = ++currentRoot.age;
-                    left.speed = 1;
-                    left.alive = 1;
-                    left.plantTime = Time.realtimeSinceStartup;
+                    newAgents.Add(
+                        CreateAgent(
+                            currentRoot.position, 
+                            currentRoot.angle- 0.7f,
+                            currentRoot.age
+                        )
+                    );
 
-                    newAgents.Add(left);
-
-
-                    RootAgent right = new RootAgent();
-                    right.position = currentRoot.position;
-                    right.angle = currentRoot.angle - 0.7f;
-                    right.age = ++currentRoot.age;
-                    right.speed = 1;
-                    right.alive = 1; 
-                    right.plantTime = Time.realtimeSinceStartup;
-
-                    newAgents.Add(right);
-
+                    newAgents.Add(
+                        CreateAgent(
+                            currentRoot.position, 
+                            currentRoot.angle + 0.7f,
+                            currentRoot.age
+                        )
+                    );
                 } else {
                     newAgents.Add(currentRoot);
                 }
@@ -195,10 +183,23 @@ public class TextureGenerator : MonoBehaviour
             computeShader.Dispatch(updateKernel, (int)agentCount, 1, 1);
         }
 
-        // int growKernel = computeShader.FindKernel("Grow");        
-        // int workgroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
-        // int workgroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
-        // computeShader.Dispatch(growKernel, workgroupsX, workgroupsY, 1);
+        int growKernel = computeShader.FindKernel("Grow");        
+        int workgroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
+        int workgroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
+        computeShader.Dispatch(growKernel, workgroupsX, workgroupsY, 1);
+    }
+
+    private static RootAgent CreateAgent(Vector2 pos, float newAngle, int age) {
+        RootAgent agent = new RootAgent();
+        agent.position = pos;
+        agent.angle = newAngle;
+        agent.age = ++age;
+        agent.speed = 0.5f;
+        agent.width = (5f - age) + 0.2f;
+        agent.alive = 1; 
+        agent.deadTime = Time.time + UnityEngine.Random.Range(1f, 3f);
+
+        return agent;
     }
 
     public static void CreateAndSetBuffer<T>(ref ComputeBuffer buffer, T[] data, ComputeShader cs, string nameID, int kernelIndex = 0)
