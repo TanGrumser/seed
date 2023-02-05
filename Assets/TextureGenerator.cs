@@ -109,17 +109,11 @@ public class TextureGenerator : MonoBehaviour
         for (int i = 0; i < roots.Count; i++) {
             RootAgent root = roots[i];
             
-            // if (root.age > 5) {
-            //     root.alive = 0;
-            //     roots[i] = root;
-            //     dirtyAgents = true;
-            // }
-            
             float aliveTime = Time.realtimeSinceStartup - root.plantTime;
 
             if (aliveTime >= 1.2) {
                 float rndValue = (float)rnd.NextDouble();
-                if (aliveTime >= 2.8 || rndValue < 0.005) {
+                if (aliveTime >= 2.2 || rndValue < 0.5) {
                     root.alive = 0;
                     roots[i] = root;
                     dirtyAgents = true;
@@ -135,7 +129,11 @@ public class TextureGenerator : MonoBehaviour
 
             for (int i = 0; i < roots.Count; i++) {
                 RootAgent currentRoot = agents[i];
-                if (roots[i].alive == 0) {                    
+                if (roots[i].alive == 0) {    
+                    if (roots[i].age > 5) {
+                        continue;
+                    }
+
                     RootAgent left = new RootAgent();
                     left.position = currentRoot.position;
                     left.angle = currentRoot.angle + 0.7f;
