@@ -22,6 +22,7 @@ public class TextureGenerator : MonoBehaviour
     private RenderTexture trialTexture;
     private RenderTexture dataTexture;
     private RenderTexture displayTexture;
+    private RenderTexture testTexture;
 
     ComputeBuffer rootBuffer;
     ComputeBuffer countBuffer;
@@ -57,6 +58,10 @@ public class TextureGenerator : MonoBehaviour
         displayTexture = new RenderTexture( Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         displayTexture.enableRandomWrite = true;
         displayTexture.Create();
+
+        testTexture = new RenderTexture( Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+        testTexture.enableRandomWrite = true;
+        testTexture.Create();
         
         display.GetComponent<MeshRenderer>().material.mainTexture = displayTexture;   
 
@@ -81,6 +86,7 @@ public class TextureGenerator : MonoBehaviour
 
         computeShader.SetTexture(displayKernel, "Source", dataTexture);
         computeShader.SetTexture(displayKernel, "Result", displayTexture);
+        computeShader.SetTexture(displayKernel, "Test", testTexture);
 
         InitDisplayTexture();
 /*
