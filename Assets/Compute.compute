@@ -130,7 +130,7 @@ void Grow (uint3 id : SV_DispatchThreadID)
     }
     
 
-    DataOutputTexture[id.xy] = col * 0.999;
+    DataOutputTexture[id.xy] = col * coefficient;
 }
 
 // ----------------------------------------
@@ -144,8 +144,6 @@ RWTexture2D<float4> FloorTexture;
 [numthreads(8,8,1)]
 void Display (uint3 id : SV_DispatchThreadID)
 {   
-    float threshold = 0.8;
-    float threshold2 = 0.2;
     float4 col = float4(
         0.69 * Source[id.xy].x * 0.8,
         0.49 * Source[id.xy].y * 0.8, 

@@ -56,6 +56,9 @@ public class TextureGenerator : MonoBehaviour
         int workgroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
         
         floorGenerator.Dispatch(updateKernel, workgroupsX, workgroupsY, 1);
+        Initialize();
+        updateTexture = true;  
+
     }
 
     ComputeBuffer rootBuffer;
@@ -66,9 +69,11 @@ public class TextureGenerator : MonoBehaviour
     private uint agentCount;
 
     private bool updateTexture = false;
+    private bool updateDisplay = false;
 
     public void SeedPlant(Vector3 pos) {
         updateTexture = true;
+        updateDisplay = true;
         roots.Add(
             CreateAgent(
                 new Vector2(pos.x, Screen.height),
@@ -112,6 +117,11 @@ public class TextureGenerator : MonoBehaviour
         computeShader.SetTexture(displayKernel, "Result", displayTexture);
         computeShader.SetTexture(displayKernel, "FloorTexture", floorTexture);
 
+        int workgroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
+        int workgroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
+
+        computeShader.Dispatch(displayKernel, workgroupsX, workgroupsY, 1);
+
         InitDisplayTexture();
 /*
         computeShader.SetInt("width", Screen.width);
@@ -144,7 +154,7 @@ public class TextureGenerator : MonoBehaviour
     }
 
     private void LateUpdate() {
-        if (!updateTexture) {
+        if (!updateDisplay) {
             return;
         }
         DisplayTexture();
@@ -228,9 +238,11 @@ public class TextureGenerator : MonoBehaviour
         computeShader.SetFloat("deltaTime", Time.deltaTime);
         computeShader.SetFloat("numRoots", agentCount);
 
-        int[] agentCountArray = {(int)agentCount};
-        countBuffer.SetData(agentCountArray);
-        computeShader.SetBuffer(updateKernel, "rootCount", countBuffer);
+        if (countBuffer != null) {
+            int[] agentCountArray = {(int)agentCount};
+            countBuffer.SetData(agentCountArray);
+            computeShader.SetBuffer(updateKernel, "rootCount", countBuffer);
+        }
         
         if (agentCount > 0) {
             // Debug.Log("Dispatching compute shader");

@@ -9,7 +9,7 @@ float t;
 
 float dropOff(float x);
 float noiseS(float2 g, float2 v);
-float noise(float4 v);
+float noise(float4 v); 
 float2 grad(uint2 u);
 
 [numthreads(8,8,1)]
@@ -24,6 +24,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     Result[id.xy] = h;
     Output[id.xy] = h;
+
 }
 
 float dropOff(float x)
