@@ -130,7 +130,7 @@ void Grow (uint3 id : SV_DispatchThreadID)
     }
     
 
-    DataOutputTexture[id.xy] = col * coefficient;
+    DataOutputTexture[id.xy] = col * 0.999;
 }
 
 // ----------------------------------------
@@ -139,12 +139,11 @@ void Grow (uint3 id : SV_DispatchThreadID)
 
 RWTexture2D<float4> Source;
 RWTexture2D<float4> Result;
-RWTexture2D<float4> Test;
+RWTexture2D<float4> FloorTexture;
 
 [numthreads(8,8,1)]
 void Display (uint3 id : SV_DispatchThreadID)
 {   
-    Test[id.xy] = float4(0.2, 0.2, 0.8, 0);
     float threshold = 0.8;
     float threshold2 = 0.2;
     float4 col = float4(
@@ -155,18 +154,7 @@ void Display (uint3 id : SV_DispatchThreadID)
     );
 
     float maxVal = 1 - max(Source[id.xy].x, max(Source[id.xy].y, Source[id.xy].z));
-    Result[id.xy] = lerp(col, Test[id.xy], float4(maxVal, maxVal, maxVal, maxVal));
-    return; 
-
-    if (Source[id.xy].x > threshold || Source[id.xy].y > threshold || Source[id.xy].z > threshold) {
-        //Result[id.xy] = lerp(col, Result[id.xy], float4(lerpVal, lerpVal, lerpVal, lerpVal));
-        Result[id.xy] = col;
-    } else if (Source[id.xy].x > threshold2 || Source[id.xy].y > threshold2 || Source[id.xy].z > threshold2) {
-        float lerpVal = 0.5;
-        Result[id.xy] = lerp(col, Test[id.xy], float4(lerpVal, lerpVal, lerpVal, lerpVal)); 
-    } else {
-        Result[id.xy] = Test[id.xy];
-    }
+    Result[id.xy] = lerp(col, FloorTexture[id.xy], 0.5);
 }
 
 // ----------------------------------------

@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System;
+using System.Collections;
+using System.Linq;
+using UnityEditor;
 
 public struct RootAgent
 {
@@ -17,12 +19,44 @@ public struct RootAgent
 public class TextureGenerator : MonoBehaviour 
 {
     public GameObject display;
-
+    public float resolution = 1280;
     public ComputeShader computeShader;
+    public ComputeShader floorGenerator;
     private RenderTexture trialTexture;
     private RenderTexture dataTexture;
     private RenderTexture displayTexture;
-    private RenderTexture testTexture;
+    private RenderTexture floorTexture;
+
+	private static Vector2 GetRandomDirection()
+	{
+		return new Vector2(Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f)).normalized;
+	}
+
+    private void Awake() {
+        displayTexture = new RenderTexture( Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+        displayTexture.enableRandomWrite = true;
+        displayTexture.Create();
+
+        display.GetComponent<MeshRenderer>().material.mainTexture = displayTexture;   
+        ComputeBuffer gradients = new ComputeBuffer(256, sizeof(float) * 2);
+		gradients.SetData(Enumerable.Range(0, 256).Select((i) => GetRandomDirection()).ToArray());
+
+        floorTexture = new RenderTexture(Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+        floorTexture.enableRandomWrite = true;
+        floorTexture.Create();
+
+        int updateKernel = floorGenerator.FindKernel("CSMain");
+        floorGenerator.SetTexture(updateKernel, "Result", floorTexture);
+        floorGenerator.SetTexture(updateKernel, "Output", displayTexture);
+        floorGenerator.SetBuffer(updateKernel, "gradients", gradients);
+        floorGenerator.SetFloat("res", (float)resolution);
+		floorGenerator.SetFloat("t", (float) EditorApplication.timeSinceStartup);
+
+        int workgroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
+        int workgroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
+        
+        floorGenerator.Dispatch(updateKernel, workgroupsX, workgroupsY, 1);
+    }
 
     ComputeBuffer rootBuffer;
     ComputeBuffer countBuffer;
@@ -55,16 +89,6 @@ public class TextureGenerator : MonoBehaviour
         trialTexture.enableRandomWrite = true;
         trialTexture.Create();
 
-        displayTexture = new RenderTexture( Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-        displayTexture.enableRandomWrite = true;
-        displayTexture.Create();
-
-        testTexture = new RenderTexture( Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-        testTexture.enableRandomWrite = true;
-        testTexture.Create();
-        
-        display.GetComponent<MeshRenderer>().material.mainTexture = displayTexture;   
-
         int updateKernel = computeShader.FindKernel("Update");
         int growKernel = computeShader.FindKernel("Grow");
         computeShader.SetTexture(updateKernel, "TrialTexture", trialTexture);
@@ -86,7 +110,7 @@ public class TextureGenerator : MonoBehaviour
 
         computeShader.SetTexture(displayKernel, "Source", dataTexture);
         computeShader.SetTexture(displayKernel, "Result", displayTexture);
-        computeShader.SetTexture(displayKernel, "Test", testTexture);
+        computeShader.SetTexture(displayKernel, "FloorTexture", floorTexture);
 
         InitDisplayTexture();
 /*
@@ -148,6 +172,7 @@ public class TextureGenerator : MonoBehaviour
             RootAgent root = roots[i];
             
             if (root.deadTime <= Time.time) {
+                Debug.Log("Dead");
                 root.alive = 0;
                 roots[i] = root;
                 dirtyAgents = true;
