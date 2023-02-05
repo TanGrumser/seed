@@ -17,6 +17,7 @@ public class TextureGenerator : MonoBehaviour
     public GameObject display;
 
     public ComputeShader computeShader;
+    private RenderTexture trialTexture;
     private RenderTexture dataTexture;
     private RenderTexture displayTexture;
 
@@ -32,6 +33,10 @@ public class TextureGenerator : MonoBehaviour
         dataTexture.enableRandomWrite = true;
         dataTexture.Create();
 
+        trialTexture = new RenderTexture(Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+        trialTexture.enableRandomWrite = true;
+        trialTexture.Create();
+
         displayTexture = new RenderTexture( Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         displayTexture.enableRandomWrite = true;
         displayTexture.Create();
@@ -40,8 +45,8 @@ public class TextureGenerator : MonoBehaviour
 
         int updateKernel = computeShader.FindKernel("Update");
         int growKernel = computeShader.FindKernel("Grow");
-        computeShader.SetTexture(updateKernel, "DataTexture", dataTexture);
-        computeShader.SetTexture(growKernel, "Texture", dataTexture);
+        computeShader.SetTexture(updateKernel, "TrialTexture", dataTexture);
+        computeShader.SetTexture(growKernel, "DataTexture", dataTexture);
         computeShader.SetFloat("width", Screen.width);
         computeShader.SetFloat("height", Screen.height);
 
@@ -167,10 +172,10 @@ public class TextureGenerator : MonoBehaviour
             computeShader.Dispatch(updateKernel, (int)agentCount, 1, 1);
         }
 
-        int growKernel = computeShader.FindKernel("Grow");        
-        int workgroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
-        int workgroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
-        computeShader.Dispatch(growKernel, workgroupsX, workgroupsY, 1);
+        // int growKernel = computeShader.FindKernel("Grow");        
+        // int workgroupsX = Mathf.CeilToInt(Screen.width / 8.0f);
+        // int workgroupsY = Mathf.CeilToInt(Screen.height / 8.0f);
+        // computeShader.Dispatch(growKernel, workgroupsX, workgroupsY, 1);
     }
 
     public static void CreateAndSetBuffer<T>(ref ComputeBuffer buffer, T[] data, ComputeShader cs, string nameID, int kernelIndex = 0)

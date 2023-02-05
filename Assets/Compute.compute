@@ -13,7 +13,7 @@ struct Root {
 
 RWStructuredBuffer<Root> roots;
 
-RWTexture2D<float4> DataTexture;
+RWTexture2D<float4> TrialTexture;
 float width;
 float height;
 float time;
@@ -36,6 +36,12 @@ float scaleToRange01(uint state)
     return state / 4294967295.0;
 }
 
+float getRandomAngleChange(float2 pos, uint3 id) {
+    uint random = hash(pos.y * width + pos.x + hash(id.x + time));
+    float randomSteerStrength = scaleToRange01(random);
+    return (randomSteerStrength - 0.5) / 20.0;
+}
+
 [numthreads(16,1,1)]
 void Update (uint3 id : SV_DispatchThreadID)
 {
@@ -49,15 +55,16 @@ void Update (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    int sampleX = min(width-1, max(0, root.position.x));
-    int sampleY = min(height-1, max(0, root.position.y));
-
-    DataTexture[int2(root.position.x, root.position.y)] = 1; 
-
     float2 direction = float2(cos(root.angle), sin(root.angle));
 	float2 newPos = root.position + direction * root.speed;
 
+    int sampleX = min(1280 - 1, max(0, root.position.x));
+    int sampleY = min(720 - 1, max(0, root.position.y));
+
+    TrialTexture[int2(sampleX, sampleY)] = float4(direction.x, direction.y, 1.0, 0.0); 
+
     roots[id.x].position = newPos;
+    roots[id.x].angle += getRandomAngleChange(root.position, id);
     //roots[id.x].speed = max(0, root.speed - 0.01);
 }
 
@@ -67,7 +74,7 @@ void Update (uint3 id : SV_DispatchThreadID)
 
 #pragma kernel Grow
 
-RWTexture2D<float4> Texture;
+RWTexture2D<float4> DataTexture;
 
 [numthreads(8,8,1)]
 void Grow (uint3 id : SV_DispatchThreadID)
@@ -79,11 +86,11 @@ void Grow (uint3 id : SV_DispatchThreadID)
 		for (int offsetY = -1; offsetY <= 1; offsetY ++) {
 			int sampleX = min(1280 - 1, max(0, id.x + offsetX));
 			int sampleY = min(720 - 1, max(0, id.y + offsetY));
-			sum += Texture[int2(sampleX, sampleY)];
+			sum += DataTexture[int2(sampleX, sampleY)];
 		}
 	}
 
-	Texture[id.xy] = sum / 8.95;
+	DataTexture[id.xy] = sum / 8.99;
 }
 
 // ----------------------------------------
