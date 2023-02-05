@@ -30,7 +30,21 @@ public class TextureGenerator : MonoBehaviour
 
     private uint agentCount;
 
-    private void Start() {
+    private bool updateTexture = false;
+
+    public void SeedPlant(Vector3 pos) {
+        updateTexture = true;
+        roots.Add(
+            CreateAgent(
+                new Vector2(pos.x, Screen.height),
+                -Mathf.PI * 0.5f,
+                0
+            )
+        );
+        Initialize();
+    }
+
+    private void Initialize() {
         // Initialize all textures
         dataTexture = new RenderTexture(Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         dataTexture.enableRandomWrite = true;
@@ -51,14 +65,6 @@ public class TextureGenerator : MonoBehaviour
         computeShader.SetTexture(updateKernel, "TrialTexture", trialTexture);
         computeShader.SetTexture(growKernel, "TrailInputTexture", trialTexture);
         computeShader.SetTexture(growKernel, "DataOutputTexture", dataTexture);
-        
-        roots.Add(
-            CreateAgent(
-                new Vector2(Screen.width / 2f, Screen.height),
-                -Mathf.PI * 0.5f,
-                0
-            )
-        );
 
         agentCount = 1;
 
@@ -84,6 +90,10 @@ public class TextureGenerator : MonoBehaviour
     }
 
     private void FixedUpdate() {
+        if (!updateTexture) {
+            return;
+        }
+        
         try {
             UpdateTexture();
         } catch (System.Exception e){
