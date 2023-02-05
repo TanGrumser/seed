@@ -127,9 +127,9 @@ public class TextureGenerator : MonoBehaviour
 
             rootBuffer.GetData(agents);
 
-            for (int i = 0; i < roots.Count; i++) {
+            for (int i = 0; i < agentCount; i++) {
                 RootAgent currentRoot = agents[i];
-                if (roots[i].alive == 0) {    
+                if (roots[i].alive == 0) {
                     if (roots[i].age > 5) {
                         continue;
                     }
