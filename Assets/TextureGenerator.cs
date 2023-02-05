@@ -49,7 +49,7 @@ public class TextureGenerator : MonoBehaviour
         dataTexture = new RenderTexture(Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         dataTexture.enableRandomWrite = true;
         dataTexture.Create();
-        Debug.Log(agentStide);
+
         trialTexture = new RenderTexture(Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         trialTexture.enableRandomWrite = true;
         trialTexture.Create();
@@ -68,7 +68,6 @@ public class TextureGenerator : MonoBehaviour
 
         agentCount = 1;
 
-        //CreateAndSetBuffer<RootAgent>(ref rootBuffer, roots, computeShader, "roots", updateKernel);
         rootBuffer = new ComputeBuffer((int)agentCount, agentStide);
         rootBuffer.SetData(roots.ToArray());
         computeShader.SetBuffer(updateKernel, "roots", rootBuffer);
@@ -82,10 +81,10 @@ public class TextureGenerator : MonoBehaviour
 
         computeShader.SetTexture(displayKernel, "Source", dataTexture);
         computeShader.SetTexture(displayKernel, "Result", displayTexture);
-
+/*
         computeShader.SetInt("width", Screen.width);
 		computeShader.SetInt("height", Screen.height);
-		computeShader.SetInt("numRoots", (int)agentCount);
+		computeShader.SetInt("numRoots", (int)agentCount);*/
 
     }
 
@@ -103,7 +102,9 @@ public class TextureGenerator : MonoBehaviour
     }
 
     private void LateUpdate() {
-
+        if (!updateTexture) {
+            return;
+        }
         DisplayTexture();
     }
 
