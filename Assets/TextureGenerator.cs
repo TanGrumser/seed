@@ -141,7 +141,7 @@ public class TextureGenerator : MonoBehaviour
                     newAgents.Add(
                         CreateAgent(
                             currentRoot.position, 
-                            currentRoot.angle- 0.7f,
+                            currentRoot.angle- 0.9f,
                             currentRoot.age
                         )
                     );
@@ -149,7 +149,7 @@ public class TextureGenerator : MonoBehaviour
                     newAgents.Add(
                         CreateAgent(
                             currentRoot.position, 
-                            currentRoot.angle + 0.7f,
+                            currentRoot.angle + 0.9f,
                             currentRoot.age
                         )
                     );
@@ -194,7 +194,7 @@ public class TextureGenerator : MonoBehaviour
         agent.position = pos;
         agent.angle = newAngle;
         agent.age = ++age;
-        agent.speed = 0.5f;
+        agent.speed = 1f;
         agent.width = (5f - age) + 0.2f;
         agent.alive = 1; 
         agent.deadTime = Time.time + UnityEngine.Random.Range(1f, 3f);

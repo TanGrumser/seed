@@ -71,7 +71,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     }
 
     float2 direction = float2(cos(root.angle), sin(root.angle));
-	float2 newPos = root.position + direction * root.speed;
+	float2 newPos = root.position + direction * root.speed * (1 - root.age / 8.0);
 
     //int sampleX = min(1280 - 1, max(0, root.position.x));
     //int sampleY = min(720 - 1, max(0, root.position.y));
