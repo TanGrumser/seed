@@ -26,6 +26,11 @@ public class TextureGenerator : MonoBehaviour
     private RenderTexture dataTexture;
     private RenderTexture displayTexture;
     private RenderTexture floorTexture;
+    private bool isResetable = false;
+    private Controller controller;
+    public GameObject controllerGO;
+    private bool isInit = false;
+    private int seedIndex = -1;
 
 	private static Vector2 GetRandomDirection()
 	{
@@ -33,6 +38,7 @@ public class TextureGenerator : MonoBehaviour
 	}
 
     private void Awake() {
+        controller = controllerGO.GetComponent<Controller>();
         displayTexture = new RenderTexture( Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         displayTexture.enableRandomWrite = true;
         displayTexture.Create();
@@ -58,7 +64,6 @@ public class TextureGenerator : MonoBehaviour
         floorGenerator.Dispatch(updateKernel, workgroupsX, workgroupsY, 1);
         Initialize();
         updateTexture = true;  
-
     }
 
     ComputeBuffer rootBuffer;
@@ -72,8 +77,10 @@ public class TextureGenerator : MonoBehaviour
     private bool updateDisplay = false;
 
     public void SeedPlant(Vector3 pos) {
+        seedIndex++;
         updateTexture = true;
         updateDisplay = true;
+        roots.Clear();
         roots.Add(
             CreateAgent(
                 new Vector2(pos.x, Screen.height),
@@ -81,10 +88,15 @@ public class TextureGenerator : MonoBehaviour
                 0
             )
         );
+        isResetable = true;
         Initialize();
     }
 
     private void Initialize() {
+        
+        int updateKernel = computeShader.FindKernel("Update");
+        int growKernel = computeShader.FindKernel("Grow");
+        if (!isInit) {
         // Initialize all textures
         dataTexture = new RenderTexture(Screen.width, Screen.height, 3, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         dataTexture.enableRandomWrite = true;
@@ -94,12 +106,10 @@ public class TextureGenerator : MonoBehaviour
         trialTexture.enableRandomWrite = true;
         trialTexture.Create();
 
-        int updateKernel = computeShader.FindKernel("Update");
-        int growKernel = computeShader.FindKernel("Grow");
         computeShader.SetTexture(updateKernel, "TrialTexture", trialTexture);
         computeShader.SetTexture(growKernel, "TrailInputTexture", trialTexture);
         computeShader.SetTexture(growKernel, "DataOutputTexture", dataTexture);
-
+        }
         agentCount = 1;
 
         rootBuffer = new ComputeBuffer((int)agentCount, agentStide);
@@ -127,6 +137,7 @@ public class TextureGenerator : MonoBehaviour
         computeShader.SetInt("width", Screen.width);
 		computeShader.SetInt("height", Screen.height);
 		computeShader.SetInt("numRoots", (int)agentCount);*/
+        isInit = true; 
 
     }
 
@@ -182,7 +193,6 @@ public class TextureGenerator : MonoBehaviour
             RootAgent root = roots[i];
             
             if (root.deadTime <= Time.time) {
-                Debug.Log("Dead");
                 root.alive = 0;
                 roots[i] = root;
                 dirtyAgents = true;
@@ -245,8 +255,13 @@ public class TextureGenerator : MonoBehaviour
         }
         
         if (agentCount > 0) {
-            // Debug.Log("Dispatching compute shader");
             computeShader.Dispatch(updateKernel, (int)agentCount, 1, 1);
+        } else {
+            Debug.Log("No agents " + isResetable);
+            
+            if (isResetable) {
+                StartCoroutine(ResetSeed());
+            }
         }
 
         int growKernel = computeShader.FindKernel("Grow");        
@@ -255,7 +270,14 @@ public class TextureGenerator : MonoBehaviour
         computeShader.Dispatch(growKernel, workgroupsX, workgroupsY, 1);
     }
 
-    private static RootAgent CreateAgent(Vector2 pos, float newAngle, int age) {
+    private IEnumerator ResetSeed() {
+        isResetable = false;
+        yield return new WaitForSeconds(3f);
+
+        controller.Reset();
+    }
+
+    private RootAgent CreateAgent(Vector2 pos, float newAngle, int age) {
         RootAgent agent = new RootAgent();
         agent.position = pos;
         agent.angle = newAngle;
@@ -264,6 +286,7 @@ public class TextureGenerator : MonoBehaviour
         agent.width = (5f - age) + 0.2f;
         agent.alive = 1; 
         agent.deadTime = Time.time + UnityEngine.Random.Range(1f, 3f);
+        agent.rootIndex = seedIndex;
 
         return agent;
     }

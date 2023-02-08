@@ -12,9 +12,13 @@ public class Controller : MonoBehaviour
     private bool planted;
     public GameObject musicPlayer;
     private bool playing;
+    private float initalHeight;
+    private Vector3 initialPos;
 
     void Awake() {
         main = Camera.main;
+        initalHeight = main.transform.position.y;
+        initialPos = seed.transform.position;
     }
 
     // Update is called once per frame
@@ -38,17 +42,49 @@ public class Controller : MonoBehaviour
             seed.transform.position = 
             new Vector3(
                 main.ScreenToWorldPoint(Vector3.right * Input.mousePosition.x).x ,
-                seed.transform.position.y,
-                seed.transform.position.z);
+                initialPos.y,
+                initialPos.z);
         }
 
         if (Input.GetMouseButton(0)) {
             falling = true;
             if (!playing) {
-                musicPlayer.GetComponent<AudioSource>().time = 0.8f;
+                musicPlayer.GetComponent<AudioSource>().time = 0.6f;
                 musicPlayer.GetComponent<AudioSource>().Play();
                 playing = true;
             }
         }
+
     }
+
+    public void Reset() {
+        falling = false;
+        StartCoroutine(flyBack());
+    }
+
+    public IEnumerator flyBack() {
+        speed = 0f;
+        speed -= Time.deltaTime * 1.1f;
+        float halfHeight = initalHeight / 2f;
+
+        while (main.transform.position.y < halfHeight) {
+            speed -= Time.deltaTime * 1.1f;
+            main.transform.position += Vector3.down * speed * Time.deltaTime;
+            
+            yield return new WaitForEndOfFrame();
+        }
+
+        while (speed < 0f) {
+            speed += Time.deltaTime * 1.1f;
+            main.transform.position += Vector3.down * speed * Time.deltaTime;
+            
+            yield return new WaitForEndOfFrame();
+        }
+
+        falling = false;
+        speed = 0f;
+        main.transform.position = new Vector3(main.transform.position.x, initalHeight, main.transform.position.z);
+        planted = false;
+    }
+
 }

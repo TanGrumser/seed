@@ -81,7 +81,17 @@ void Update (uint3 id : SV_DispatchThreadID)
     }
 
     //TrialTexture[int2(root.position)] = float4(direction.x, direction.y, root.width , 0.0); 
-    TrialTexture[int2(root.position)] = float4(1, 1, root.width , 0.0); 
+    float alpha;
+
+    if (root.speciesIndex == 0) {
+        alpha = 0;
+    }
+    
+    if (root.speciesIndex == 1) {
+        alpha = 0.1;
+    }
+
+    TrialTexture[int2(root.position)] = float4(1, 1, root.width , alpha); 
 
     roots[id.x].position = newPos;
     roots[id.x].angle = getNewAngle(root.position, id, root.angle);
