@@ -152,7 +152,7 @@ void Display (uint3 id : SV_DispatchThreadID)
     );
 
     float maxVal = 1 - max(Source[id.xy].x, max(Source[id.xy].y, Source[id.xy].z));
-    Result[id.xy] = lerp(col, FloorTexture[id.xy], 0.5);
+    Result[id.xy] = lerp(col, FloorTexture[id.xy], 0.8);
 }
 
 // ----------------------------------------
